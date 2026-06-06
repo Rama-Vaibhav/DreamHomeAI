@@ -1,0 +1,187 @@
+================================================================================
+         DREAM HOME AI — VERCEL DEPLOYMENT GUIDE
+         Snaphomz Hackathon 2.0
+================================================================================
+
+TABLE OF CONTENTS
+─────────────────
+1. Prerequisites
+2. Push to GitHub
+3. Deploy to Vercel
+4. Environment Variables
+5. Custom Domain (Optional)
+6. Post-Deployment Checklist
+7. Troubleshooting
+
+================================================================================
+1. PREREQUISITES
+================================================================================
+
+Before deploying, ensure you have:
+
+  ✓ A GitHub account (https://github.com)
+  ✓ A Vercel account (https://vercel.com) — free tier works perfectly
+  ✓ Node.js 18+ installed locally
+  ✓ Git installed locally
+
+Verify your build works locally:
+
+  $ cd dream-home-ai
+  $ npm install
+  $ npm run build
+
+If the build succeeds with no errors, you're ready to deploy.
+
+================================================================================
+2. PUSH TO GITHUB
+================================================================================
+
+Step 1: Create a new repository on GitHub
+  - Go to https://github.com/new
+  - Name it: dream-home-ai (or your preferred name)
+  - Set to Public or Private (both work with Vercel)
+  - Do NOT initialize with README (we already have one)
+  - Click "Create repository"
+
+Step 2: Push your code
+
+  $ cd dream-home-ai
+  $ git init                                    # (skip if already initialized)
+  $ git add .
+  $ git commit -m "Dream Home AI - Complete hackathon submission"
+  $ git branch -M main
+  $ git remote add origin https://github.com/YOUR_USERNAME/dream-home-ai.git
+  $ git push -u origin main
+
+================================================================================
+3. DEPLOY TO VERCEL
+================================================================================
+
+Option A: Via Vercel Dashboard (Recommended)
+────────────────────────────────────────────
+
+  1. Go to https://vercel.com/dashboard
+  2. Click "Add New..." → "Project"
+  3. Import your GitHub repository (dream-home-ai)
+  4. Vercel will auto-detect Next.js — no configuration needed!
+  5. Configure these settings:
+     - Framework Preset: Next.js (auto-detected)
+     - Root Directory: ./ (leave as default)
+     - Build Command: npm run build (auto-detected)
+     - Output Directory: (leave blank, Next.js handles this)
+  6. Click "Deploy"
+  7. Wait 1-2 minutes for the build to complete
+  8. Your app is live! 🎉
+
+Option B: Via Vercel CLI
+────────────────────────
+
+  $ npm install -g vercel          # Install Vercel CLI
+  $ cd dream-home-ai
+  $ vercel                         # Follow the prompts
+  $ vercel --prod                  # Deploy to production
+
+================================================================================
+4. ENVIRONMENT VARIABLES
+================================================================================
+
+This app works WITHOUT any environment variables (demo mode uses fallback
+images). However, for AI image generation:
+
+On the Vercel Dashboard:
+  1. Go to your project → Settings → Environment Variables
+  2. Add the following (optional):
+
+  ┌────────────────────────┬────────────────────────────────────────────┐
+  │ Variable Name          │ Description                                │
+  ├────────────────────────┼────────────────────────────────────────────┤
+  │ OPENAI_API_KEY         │ Optional. Enables DALL-E image generation  │
+  │                        │ If not set, uses Unsplash fallback images  │
+  └────────────────────────┴────────────────────────────────────────────┘
+
+IMPORTANT: The app is designed to work perfectly without any API keys.
+           The fallback images ensure the demo NEVER breaks.
+
+================================================================================
+5. CUSTOM DOMAIN (Optional)
+================================================================================
+
+  1. Go to your Vercel project → Settings → Domains
+  2. Add your domain (e.g., dreamhome.snaphomz.com)
+  3. Follow Vercel's DNS configuration instructions:
+     - For subdomain: Add a CNAME record pointing to cname.vercel-dns.com
+     - For apex domain: Add an A record pointing to 76.76.21.21
+  4. SSL certificate is auto-provisioned by Vercel (free!)
+
+================================================================================
+6. POST-DEPLOYMENT CHECKLIST
+================================================================================
+
+After deployment, verify these work:
+
+  [ ] Landing page loads with all 5 sections
+  [ ] "Start Designing" button navigates to /quiz
+  [ ] Quiz navigates through all 8 steps
+  [ ] Quiz submission redirects to /results
+  [ ] Results page shows:
+      [ ] Personality card with traits and quote
+      [ ] 4 dream room visuals (fallback images)
+      [ ] Top 5 property matches with scores
+      [ ] Share panel (download, Twitter, copy link)
+      [ ] CTA banner linking to Snaphomz
+  [ ] Mobile responsive (test on phone)
+  [ ] Page transitions are smooth
+  [ ] No console errors
+
+================================================================================
+7. TROUBLESHOOTING
+================================================================================
+
+Issue: Build fails on Vercel
+  → Ensure package-lock.json is committed to git
+  → Check that Node.js version is 18+ (Vercel Settings → General)
+  → Run `npm run build` locally first to catch errors
+
+Issue: Images not loading
+  → Unsplash images should work out of the box
+  → Check next.config.ts has images.remotePatterns configured
+  → Verify no ad-blocker is blocking Unsplash URLs
+
+Issue: Quiz answers lost on navigation
+  → Quiz uses sessionStorage — this is per-tab
+  → Make sure you're not opening results in a new tab
+  → Check browser privacy settings aren't blocking storage
+
+Issue: API routes returning 500
+  → Check Vercel Function Logs (Dashboard → Deployments → Functions)
+  → Ensure all dependencies are in package.json (not devDependencies)
+
+Issue: Slow initial load
+  → First visit triggers serverless function cold start (~1-2s)
+  → Subsequent visits will be fast (cached)
+  → Static pages (landing, quiz) load instantly
+
+================================================================================
+DEPLOYMENT URLS
+================================================================================
+
+After deployment, your URLs will be:
+
+  Production:   https://your-project.vercel.app
+  Preview:      https://your-project-git-branch.vercel.app  (per PR)
+  Custom:       https://your-custom-domain.com (if configured)
+
+================================================================================
+CONTINUOUS DEPLOYMENT
+================================================================================
+
+Once connected to GitHub, Vercel automatically:
+
+  ✓ Deploys on every push to `main` (production)
+  ✓ Creates preview deployments for pull requests
+  ✓ Runs your build & type checks
+  ✓ Provides instant rollback if needed
+
+Just push code → Vercel handles the rest!
+
+================================================================================
