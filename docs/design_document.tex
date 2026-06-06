@@ -1,0 +1,227 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+
+% Colors
+\definecolor{primary}{HTML}{2563EB}
+\definecolor{darkbg}{HTML}{0B1020}
+
+% Hyperlink style
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primary,
+    urlcolor=primary,
+}
+
+% Header/Footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{gray}{Dream Home AI}}
+\fancyhead[R]{\small\textcolor{gray}{Snaphomz Hackathon 2.0}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Section styling
+\titleformat{\section}{\large\bfseries\color{primary}}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+
+\begin{document}
+
+% ─── Title ────────────────────────────────────────────────────────────────────
+\begin{center}
+    {\LARGE\textbf{Dream Home AI}}\\[6pt]
+    {\large Design Choices \& Methodology}\\[12pt]
+    {\normalsize Snaphomz Hackathon 2.0 --- Project \#1}\\[4pt]
+    {\small \today}
+\end{center}
+
+\vspace{8pt}
+
+% ─── 1. Overview ──────────────────────────────────────────────────────────────
+\section{Project Overview}
+
+Dream Home AI is an AI-powered web application that helps users discover their ideal home through a personality-based approach. Instead of traditional property search (filter by price, beds, location), users take a 2-minute quiz that maps their \textbf{lifestyle, taste, and goals} to a unique \textbf{Home Personality Type}, then receives:
+
+\begin{itemize}[nosep]
+    \item A personalized personality card with traits and style preferences
+    \item AI-generated room visualizations matching their taste
+    \item Top 5 property matches from 50 listings, scored across 5 dimensions
+    \item Shareable results (PNG download, Twitter, copy link)
+\end{itemize}
+
+\noindent\textbf{Core Thesis:} \textit{``Discover the home that matches your lifestyle before you ever search for a property.''}
+
+% ─── 2. Architecture ─────────────────────────────────────────────────────────
+\section{System Architecture}
+
+The application follows a \textbf{three-layer architecture} deployed on Vercel:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Layer} & \textbf{Technology} & \textbf{Purpose} \\
+\midrule
+Presentation & Next.js 16, Tailwind CSS, Framer Motion & UI rendering \& animations \\
+API & Next.js API Routes (serverless) & Business logic endpoints \\
+Data & Local JSON + scoring engines & Properties, personalities \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Data Flow:}
+\begin{enumerate}[nosep]
+    \item User completes 8-step quiz $\rightarrow$ answers stored in \texttt{sessionStorage}
+    \item \texttt{POST /api/quiz/analyze} $\rightarrow$ Personality Engine scores answers $\rightarrow$ returns personality type
+    \item \texttt{POST /api/generate-images} $\rightarrow$ Returns AI or fallback room visuals
+    \item \texttt{POST /api/recommendations} $\rightarrow$ Matching Engine scores 50 properties $\rightarrow$ returns top 5
+\end{enumerate}
+
+% ─── 3. Methodology ──────────────────────────────────────────────────────────
+\section{Methodology}
+
+\subsection{3.1 Personality Engine (Weighted Scoring)}
+
+Quiz answers are scored against 10 pre-defined personality types using a \textbf{weighted multi-dimensional scoring model}:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llr@{}}
+\toprule
+\textbf{Dimension} & \textbf{What It Measures} & \textbf{Weight} \\
+\midrule
+Lifestyle & Urban, suburban, nature, social, creative & 25\% \\
+Architecture & Modern, traditional, minimalist, industrial, mediterranean & 25\% \\
+Weekend Activity & How user spends leisure time & 20\% \\
+Work Style & Office, remote, hybrid, entrepreneur, freelancer & 15\% \\
+Must-Have Features & Pool, garage, garden, home office, etc. & 15\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Each personality type defines which values it matches on each dimension. The type with the \textbf{highest composite score} is assigned. This approach is \textbf{deterministic, explainable, and instant} --- no API calls needed.
+
+\subsection{3.2 Property Matching Engine (Multi-Factor Scoring)}
+
+Each of the 50 properties is scored against the user's profile across 5 factors:
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llr@{}}
+\toprule
+\textbf{Factor} & \textbf{Scoring Logic} & \textbf{Weight} \\
+\midrule
+Style Match & Exact style = 100, related = 50, other = 10 & 25\% \\
+Budget Match & Within range = 100, $\pm$20\% = 60, $\pm$40\% = 30 & 25\% \\
+Lifestyle Match & Tag overlap with lifestyle/weekend/work & 20\% \\
+Space Match & Sqft alignment with size preference & 15\% \\
+Feature Match & Must-have amenity coverage & 15\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent The weighted total produces a \textbf{match percentage} (0--100\%) per property. Users see the top 5 with a visual breakdown of \textit{why} each property matched.
+
+\subsection{3.3 Demo Resilience (Fallback Strategy)}
+
+A critical design goal: \textbf{the demo must never break}. We achieve this through:
+
+\begin{itemize}[nosep]
+    \item \textbf{Personality Engine:} Runs locally --- zero external dependencies
+    \item \textbf{Matching Engine:} Uses local JSON data --- always available
+    \item \textbf{Image Generation:} Tries OpenAI DALL-E 3 $\rightarrow$ falls back to curated Unsplash images per room/style combination
+    \item \textbf{Share Card:} Uses \texttt{html-to-image} (client-side) --- no server needed
+\end{itemize}
+
+% ─── 4. Design Choices ───────────────────────────────────────────────────────
+\section{Key Design Choices}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}p{3.2cm}p{5cm}p{5.5cm}@{}}
+\toprule
+\textbf{Decision} & \textbf{What We Chose} & \textbf{Why} \\
+\midrule
+Framework & Next.js 16 (App Router) & SSR for SEO, serverless API routes, Vercel-native \\
+Styling & Tailwind CSS 4 + dark theme & Rapid prototyping, luxury aesthetic \\
+UI Library & ShadCN (Radix-based) & Customizable, lives in our codebase \\
+Animations & Framer Motion & Production-grade React animations \\
+State Mgmt & React Context + sessionStorage & Simple linear flow, no global store needed \\
+Data Layer & Local JSON (50 listings) & Zero infrastructure for hackathon \\
+Auth & None & Frictionless --- every auth step loses $\sim$30\% users \\
+Database & None & Stateless computation, all client-side \\
+Deployment & Vercel (zero-config) & Built Next.js --- best deployment experience \\
+Design Language & Glassmorphism, dark mode & Premium brand positioning, modern 2024--2026 trend \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ─── 5. UI/UX Design ─────────────────────────────────────────────────────────
+\section{UI/UX Design Rationale}
+
+\begin{itemize}[nosep]
+    \item \textbf{Dark Theme Default:} Communicates luxury and premium positioning, consistent with high-end real estate brands.
+    \item \textbf{Glassmorphism:} Frosted-glass card effects create visual depth without heavy shadows.
+    \item \textbf{Gradient Accents:} Blue-to-purple gradients signal innovation and AI technology.
+    \item \textbf{Micro-Animations:} Hover effects, page transitions, and loading states make the app feel alive and responsive.
+    \item \textbf{Auto-Advance Quiz:} Single-select questions advance automatically, reducing clicks and friction.
+    \item \textbf{Staged Loading:} Results load in 3 visible stages (analyzing $\rightarrow$ designing $\rightarrow$ matching), building anticipation.
+    \item \textbf{Shareable Personality Card:} Designed for social virality --- each share is free marketing for Snaphomz.
+\end{itemize}
+
+% ─── 6. Revenue Connection ───────────────────────────────────────────────────
+\section{Revenue Connection to Snaphomz}
+
+\begin{enumerate}[nosep]
+    \item Every matched property card has a \textbf{``View on Snaphomz''} CTA button
+    \item Results page includes a prominent \textbf{``Browse Snaphomz Listings''} banner
+    \item The \textbf{Repository Pattern} allows swapping mock data for live Snaphomz API --- zero frontend changes needed
+    \item Shareable personality cards drive organic traffic back to the platform
+\end{enumerate}
+
+% ─── 7. Tech Stack ───────────────────────────────────────────────────────────
+\section{Technology Stack}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Category} & \textbf{Technology} \\
+\midrule
+Framework & Next.js 16 (App Router, TypeScript Strict) \\
+Styling & Tailwind CSS 4, ShadCN UI \\
+Animations & Framer Motion (motion v12) \\
+Image Generation & OpenAI DALL-E 3 + Unsplash fallback \\
+Image Export & html-to-image (client-side PNG) \\
+Validation & Zod \\
+Deployment & Vercel (serverless, edge) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ─── 8. Future Scope ─────────────────────────────────────────────────────────
+\section{Future Scope}
+
+\begin{itemize}[nosep]
+    \item Replace mock data with \textbf{Snaphomz Live API} via Repository Pattern
+    \item Add user accounts and saved results (\textbf{NextAuth.js})
+    \item Quiz analytics dashboard (\textbf{Supabase})
+    \item AI image caching (\textbf{Cloudinary/S3})
+    \item A/B testing personality result variations
+    \item Multi-language support (i18n)
+\end{itemize}
+
+\vfill
+\begin{center}
+\small\textcolor{gray}{Built with \heartsuit\ for Snaphomz Hackathon 2.0}
+\end{center}
+
+\end{document}

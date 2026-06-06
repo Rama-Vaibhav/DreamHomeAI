@@ -8,6 +8,8 @@
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-4-38bdf8?logo=tailwindcss)
 ![Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)
 
+📄 **[Design Choices & Methodology (PDF)](./docs/design_document.pdf)** — Formal documentation of architecture, scoring algorithms, and design rationale.
+
 ---
 
 ## ✨ What is Dream Home AI?
