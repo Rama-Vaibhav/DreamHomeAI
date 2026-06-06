@@ -49,13 +49,25 @@ export default function ResultsPage() {
     const fetchResults = async () => {
       try {
         // Get quiz answers from sessionStorage
-        const savedAnswers = sessionStorage.getItem("dream-home-quiz-final");
+        let savedAnswers: string | null = null;
+        try {
+          savedAnswers = sessionStorage.getItem("dream-home-quiz-final");
+        } catch {
+          // sessionStorage not available (e.g. SSR)
+        }
+
         if (!savedAnswers) {
           router.push("/quiz");
           return;
         }
 
-        const answers: QuizAnswers = JSON.parse(savedAnswers);
+        let answers: QuizAnswers;
+        try {
+          answers = JSON.parse(savedAnswers);
+        } catch {
+          router.push("/quiz");
+          return;
+        }
 
         // Stage 1: Analyze personality
         setLoadingStage("analyzing");
@@ -64,32 +76,60 @@ export default function ResultsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ answers }),
         });
+
+        if (!analyzeRes.ok) {
+          throw new Error(`Analyze API failed: ${analyzeRes.status}`);
+        }
+
         const analyzeData = await analyzeRes.json();
+
+        if (!analyzeData.personality) {
+          throw new Error("No personality data returned");
+        }
+
         setPersonality(analyzeData.personality);
         const matchCriteria: MatchCriteria = analyzeData.matchCriteria;
 
         // Stage 2: Generate images
         setLoadingStage("generating");
-        const imagesRes = await fetch("/api/generate-images", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            personality: analyzeData.personality,
-            style: answers.architecture,
-          }),
-        });
-        const imagesData = await imagesRes.json();
-        setVisuals(imagesData.images);
+        try {
+          const imagesRes = await fetch("/api/generate-images", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              personality: analyzeData.personality,
+              style: answers.architecture,
+            }),
+          });
+
+          if (imagesRes.ok) {
+            const imagesData = await imagesRes.json();
+            if (imagesData.images && Array.isArray(imagesData.images)) {
+              setVisuals(imagesData.images);
+            }
+          }
+        } catch (imgErr) {
+          console.warn("Image generation failed, continuing without visuals:", imgErr);
+        }
 
         // Stage 3: Get recommendations
         setLoadingStage("matching");
-        const recsRes = await fetch("/api/recommendations", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ matchCriteria }),
-        });
-        const recsData = await recsRes.json();
-        setMatches(recsData.properties);
+        try {
+          const recsRes = await fetch("/api/recommendations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ matchCriteria }),
+          });
+
+          if (recsRes.ok) {
+            const recsData = await recsRes.json();
+            if (recsData.properties && Array.isArray(recsData.properties)) {
+              setMatches(recsData.properties);
+            }
+          }
+        } catch (recErr) {
+          console.warn("Recommendations failed, continuing:", recErr);
+        }
 
         // Complete
         setLoadingStage("complete");
@@ -107,13 +147,15 @@ export default function ResultsPage() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#0B1020] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-400 text-lg mb-4">{error}</p>
+        <div className="text-center px-6">
+          <div className="text-5xl mb-6">😔</div>
+          <h2 className="text-2xl font-bold text-white mb-3">Oops!</h2>
+          <p className="text-white/50 text-lg mb-8 max-w-md">{error}</p>
           <Link
             href="/quiz"
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors"
+            className="inline-flex px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:scale-105 transition-all"
           >
-            Retake Quiz
+            Retake Quiz →
           </Link>
         </div>
       </div>
